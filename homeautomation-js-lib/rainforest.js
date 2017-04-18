@@ -32,7 +32,7 @@ function send_request(callback) {
     request.post({ url: rainforest_url, body: body_payload, json: true },
         function(err, httpResponse, body) {
             logging.log("error:" + err);
-            logging.log("statusCode:" + httpResponse !== null && httpResponse.statusCode);
+            logging.log("httpResponse:" + httpResponse);
             logging.log("body:" + body);
             if (callback !== null && callback !== undefined) {
                 callback(err, body)
