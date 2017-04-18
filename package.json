@@ -1,0 +1,21 @@
+{
+    "name": "mqtt-alexa-bridge",
+    "version": "0.0.1",
+    "description": "Bridge Alexa via HTTP to and from MQTT",
+    "license": "MIT",
+    "main": "mqtt-alexa-bridge.js",
+    "repository": {
+        "url": "https://github.com/terafin/mqtt-alexa-bridge"
+    },
+    "scripts": {
+        "start": "node mqtt-alexa-bridge.js"
+    },
+    "dependencies": {
+        "request": "^2.81.0",
+        "mqtt": "^2.6.2",
+        "url": "^0.11.0"
+    },
+    "engines": {
+        "node": ">=4"
+    }
+}
