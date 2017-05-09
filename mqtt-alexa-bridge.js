@@ -52,6 +52,10 @@ config.on('config-loaded', () => {
         devicesConfig.push(deviceInfo)
         logging.debug('  found device info', deviceInfo)
     })
+
+    if (!client.connected)
+        client.connect(host)
+
 })
 
 
@@ -70,33 +74,35 @@ client.on('disconnect', () => {
 })
 
 
-function generateDeviceDiscoveryPayload(allDevices) {
+function generateDeviceDiscoveryPayload() {
     var deviceInfo = []
 
-    allDevices.forEach(function(device) {
+    devicesConfig.forEach(function(device) {
         deviceInfo.push({
             'actions': [
                 'turnOn',
                 'turnOff'
             ],
-            'additionalApplianceDetails': {},
+            'additionalApplianceDetails': {
+                extraDetail1: 'optionalDetailForSkillAdapterToReferenceThisDevice'
+            },
             'applianceId': device.name,
-            'friendlyName': device.spoken_name,
             'friendlyDescription': device.spoken_name,
+            'friendlyName': device.spoken_name,
             'isReachable': true,
-            'manufacturerName': 'Alexa-MQTT-Bridge.',
-            'modelName': 'Alexa-MQTT-Bridge-Switch',
-            'version': 'Alexa-MQTT-Bridge-SwitchV1'
+            'manufacturerName': 'AlexaMQTTBridge',
+            'modelName': 'AlexaMQTTBridgeSwitch',
+            'version': 'MQTTV1'
         })
     }, this)
 
     return deviceInfo
 }
 
-function deviceInfoForApplianceId(allDevices, applianceId) {
+function deviceInfoForApplianceId(applianceId) {
     var foundDeviceInfo = null
 
-    allDevices.forEach(function(device) {
+    devicesConfig.forEach(function(device) {
         if (device.name == applianceId)
             foundDeviceInfo = device
     }, this)
@@ -106,10 +112,10 @@ function deviceInfoForApplianceId(allDevices, applianceId) {
 
 var processRequest = function(req) {
     const namespace = req.body.header.namespace
+    const msgID = req.body.header.messageId
     logging.debug('namespace: ' + namespace)
 
     var responseBody = {}
-    const msgID = '' + Math.random()
     switch (namespace) {
         case 'Alexa.ConnectedHome.Discovery':
             logging.debug(' => Discovery')
@@ -121,7 +127,7 @@ var processRequest = function(req) {
                     'payloadVersion': '2'
 
                 },
-                'payload': generateDeviceDiscoveryPayload(devicesConfig)
+                'payload': { discoveredAppliances: generateDeviceDiscoveryPayload() }
             }
             break
         case 'Alexa.ConnectedHome.System':
@@ -166,7 +172,7 @@ var processRequest = function(req) {
                 },
                 'payload': {}
             }
-            var foundDeviceInfo = deviceInfoForApplianceId(devicesConfig, applianceId)
+            var foundDeviceInfo = deviceInfoForApplianceId(applianceId)
             if (!_.isNil(foundDeviceInfo)) {
                 var on_value = foundDeviceInfo.on
                 var off_value = foundDeviceInfo.off
@@ -195,7 +201,7 @@ var processRequest = function(req) {
 
                     if (!_.isNil(publishValue)) {
                         if (client.connected) {
-                            client.publish(topic, publishValue)
+                            client.publish(topic, '' + publishValue)
                             logging.info('alexa action', {
                                 'action': 'alexa-request',
                                 'topic': topic,
@@ -233,6 +239,7 @@ var processRequest = function(req) {
             break
 
     }
+    logging.debug('returning response body', responseBody)
 
     return responseBody
 }
