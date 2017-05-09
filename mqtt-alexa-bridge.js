@@ -1,6 +1,7 @@
 // Requirements
 const mqtt = require('mqtt')
 const express = require('express')
+const async = require('async')
 const request = require('request')
 const bodyParser = require('body-parser')
 const config = require('./homeautomation-js-lib/config_loading.js')
@@ -45,9 +46,8 @@ config.on('config-loaded', () => {
         var deviceInfo = {
             name: deviceName,
             spoken_name: deviceConfig.name,
-            topic: deviceConfig.topic,
-            on: deviceConfig.on,
-            off: deviceConfig.off
+            actions: deviceConfig.actions,
+            topic: deviceConfig.topic
         }
         devicesConfig.push(deviceInfo)
         logging.debug('  found device info', deviceInfo)
@@ -174,62 +174,36 @@ var processRequest = function(req) {
             }
             var foundDeviceInfo = deviceInfoForApplianceId(applianceId)
             if (!_.isNil(foundDeviceInfo)) {
-                var on_value = foundDeviceInfo.on
-                var off_value = foundDeviceInfo.off
-                const topic = foundDeviceInfo.topic
-                if (_.isNil(on_value)) {
-                    on_value = '1'
-                }
-                if (_.isNil(off_value)) {
-                    off_value = '0'
-                }
-                if (!_.isNil(topic)) {
-                    var publishValue = null
-                    switch (controlRequest) {
-                        case 'TurnOnRequest':
-                            if (!_.isNil(on_value)) {
-                                publishValue = on_value
-                            }
-                            break
-                        case 'TurnOffRequest':
-                            if (!_.isNil(off_value)) {
-                                publishValue = off_value
-                            }
-                            break
-
-                    }
-
-                    if (!_.isNil(publishValue)) {
-                        if (client.connected) {
-                            client.publish(topic, '' + publishValue)
-                            logging.info('alexa action', {
-                                'action': 'alexa-request',
-                                'topic': topic,
-                                'value': publishValue,
-                            })
-                        } else {
-                            logging.error('alexa action', {
-                                'action': 'alexa-request',
-                                'connected': client.connected,
-                                'topic': topic,
-                                'value': publishValue,
-                            })
-                        }
-                    } else {
-                        logging.error('alexa failed action', {
+                var processAction = function(value, topic, callback) {
+                    if (!_.isNil(value) && !_.isNil(topic)) {
+                        client.publish(topic, '' + value)
+                        logging.info('alexa action', {
                             'action': 'alexa-request',
                             'topic': topic,
-                            'value': publishValue,
+                            'value': value,
                         })
                     }
 
-                } else {
-                    logging.error('alexa failed action', {
-                        'action': 'alexa-request',
-                        'topic': topic,
-                        'value': publishValue,
-                    })
+                    if (!_.isNil(callback))
+                        callback()
+                }
 
+                const topic = foundDeviceInfo.topic
+                const actions = foundDeviceInfo.actions
+
+                switch (controlRequest) {
+                    case 'TurnOnRequest':
+                        if (!_.isNil(actions))
+                            async.eachOf(actions['on'], processAction)
+                        processAction('1', topic)
+
+                        break
+                    case 'TurnOffRequest':
+                        if (!_.isNil(actions))
+                            async.eachOf(actions['off'], processAction)
+                        processAction('0', topic)
+
+                        break
                 }
             }
             break
