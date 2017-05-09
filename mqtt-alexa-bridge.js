@@ -13,9 +13,15 @@ const listening_port = process.env.LISTENING_PORT
 const host = process.env.MQTT_HOST
 const alexaEmail = process.env.ALEXA_EMAIL
 const configPath = process.env.CONFIG_PATH
+const accessTokenURL = process.env.ACCESS_TOKEN_URL
 
 if (_.isNil(configPath)) {
     logging.warn('CONFIG_PATH not set, not starting')
+    process.abort()
+}
+
+if (_.isNil(accessTokenURL)) {
+    logging.warn('ACCESS_TOKEN_URL not set, not starting')
     process.abort()
 }
 
@@ -33,6 +39,22 @@ if (_.isNil(host)) {
     logging.warn('MQTT_HOST not set, not starting')
     process.abort()
 }
+
+
+
+// Setup MQTT
+var client = mqtt.connect(host)
+
+// MQTT Observation
+
+client.on('connect', () => {
+    logging.info('MQTT Connected')
+})
+
+client.on('disconnect', () => {
+    logging.error('MQTT Disconnected, reconnecting')
+    client.connect(host)
+})
 
 config.load_path(configPath)
 
@@ -52,27 +74,7 @@ config.on('config-loaded', () => {
         devicesConfig.push(deviceInfo)
         logging.debug('  found device info', deviceInfo)
     })
-
-    if (!client.connected)
-        client.connect(host)
-
 })
-
-
-// Setup MQTT
-var client = mqtt.connect(host)
-
-// MQTT Observation
-
-client.on('connect', () => {
-    logging.info('MQTT Connected')
-})
-
-client.on('disconnect', () => {
-    logging.error('MQTT Disconnected, reconnecting')
-    client.connect(host)
-})
-
 
 function generateDeviceDiscoveryPayload() {
     var deviceInfo = []
@@ -241,7 +243,7 @@ app.post('/alexa/*', function(req, res) {
     var accessToken = req.body.payload.accessToken
     logging.debug('accessToken: ' + accessToken)
 
-    const accessURL = 'https://api.amazon.com/user/profile?access_token=' + accessToken
+    const accessURL = accessTokenURL + accessToken
 
     if (!_.isNil(cachedAccessToken) && cachedAccessToken === accessToken) {
         logging.debug('cached request: ' + accessToken)
