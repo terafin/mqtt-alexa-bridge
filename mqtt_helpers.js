@@ -1,20 +1,28 @@
-logging = require('./logging.js')
-mqtt = require('mqtt')
+const logging = require('./logging.js')
+const mqtt = require('mqtt')
 
-publish_map = {}
+var publish_map = {}
 
-exports.publish = function(client, topic, message) {
-    if (client === null || topic === null) {
-        logging.warn("empty client or topic passed into mqtt_helpers.publish")
+function fix_name(str) {
+    str = str.replace(/[+\\\&\*\%\$\#\@\!]/g, '')
+    str = str.replace(/\s/g, '_').trim().toLowerCase()
+    str = str.replace(/__/g, '_')
+    return str
+}
+
+if (mqtt.MqttClient.prototype.smartPublish == null) mqtt.MqttClient.prototype.smartPublish = function(topic, message) {
+    if (topic === null) {
+        logging.error('empty client or topic passed into mqtt_helpers.publish')
         return
     }
+    topic = fix_name(topic)
 
-    logging.log(" " + topic + ":" + message)
+    logging.info(' ' + topic + ':' + message)
     if (publish_map[topic] !== message) {
         publish_map[topic] = message
-        logging.log(" => published!")
-        client.publish(topic, message)
+        logging.debug(' => published!')
+        this.publish(topic, message)
     } else {
-        logging.log(" * not published")
+        logging.debug(' * not published')
     }
 }
