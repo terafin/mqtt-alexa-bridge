@@ -1,3 +1,4 @@
+const _ = require('lodash')
 var Winston = require('winston')
 require('winston-logstash')
 
@@ -7,16 +8,15 @@ var winston = new(Winston.Logger)({
     ]
 })
 
-
 const logstashHost = process.env.LOGSTASH_HOST
 const logstashPort = process.env.LOGSTASH_PORT
 var name = process.env.name
 
-if (name === null || name === undefined) {
+if (_.isNil(name)) {
     name = process.env.LOGGING_NAME
 }
 
-if (name === null || name === undefined) {
+if (_.isNil(name)) {
     name = 'winston'
 }
 
@@ -24,7 +24,7 @@ winston.info('Logging enabled for ' + name + '   (logstash sending to: ' + logst
 
 module.exports = winston
 
-if (logstashHost !== undefined && logstashHost !== null) {
+if (!_.isNil(logstashHost)) {
     winston.add(Winston.transports.Logstash, {
         port: logstashPort,
         node_name: name,

@@ -1,5 +1,7 @@
-const logging = require('./logging.js')
 const mqtt = require('mqtt')
+const logging = require('./logging.js')
+const _ = require('lodash')
+
 
 var publish_map = {}
 
@@ -25,4 +27,34 @@ if (mqtt.MqttClient.prototype.smartPublish == null) mqtt.MqttClient.prototype.sm
     } else {
         logging.debug(' * not published')
     }
+}
+
+const host = process.env.MQTT_HOST
+
+if (mqtt.setupClient == null) mqtt.setupClient = function(connectedCallback, disconnectedCallback) {
+    if (_.isNil(host)) {
+        logging.warn('MQTT_HOST not set, aborting')
+        process.abort()
+    }
+
+    // Setup MQTT
+    var client = mqtt.connect(host)
+
+    // MQTT Observation
+
+    client.on('connect', () => {
+        logging.info('MQTT Connected')
+        if (!_.isNil(connectedCallback))
+            connectedCallback()
+    })
+
+    client.on('disconnect', () => {
+        logging.error('MQTT Disconnected, reconnecting')
+        client.connect(host)
+
+        if (!_.isNil(disconnectedCallback))
+            disconnectedCallback()
+    })
+
+    return client
 }
