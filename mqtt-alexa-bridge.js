@@ -8,9 +8,10 @@ const config = require('./homeautomation-js-lib/config_loading.js')
 const logging = require('./homeautomation-js-lib/logging.js')
 const _ = require('lodash')
 
+require('./homeautomation-js-lib/mqtt_helpers.js')
+
 // Config
 const listening_port = process.env.LISTENING_PORT
-const host = process.env.MQTT_HOST
 const alexaEmail = process.env.ALEXA_EMAIL
 const configPath = process.env.CONFIG_PATH
 const accessTokenURL = process.env.ACCESS_TOKEN_URL
@@ -35,26 +36,7 @@ if (_.isNil(alexaEmail)) {
     process.abort()
 }
 
-if (_.isNil(host)) {
-    logging.warn('MQTT_HOST not set, not starting')
-    process.abort()
-}
-
-
-
-// Setup MQTT
-var client = mqtt.connect(host)
-
-// MQTT Observation
-
-client.on('connect', () => {
-    logging.info('MQTT Connected')
-})
-
-client.on('disconnect', () => {
-    logging.error('MQTT Disconnected, reconnecting')
-    client.connect(host)
-})
+var client = mqtt.setupClient()
 
 config.load_path(configPath)
 
@@ -112,6 +94,115 @@ function deviceInfoForApplianceId(applianceId) {
     return foundDeviceInfo
 }
 
+var handleDiscoveryRequest = function(req, namespace, msgID) {
+    var responseBody = {
+        'header': {
+            'messageId': msgID,
+            'namespace': 'Alexa.ConnectedHome.Discovery',
+            'name': 'DiscoverAppliancesResponse',
+            'payloadVersion': '2'
+
+        },
+        'payload': { discoveredAppliances: generateDeviceDiscoveryPayload() }
+    }
+    return responseBody
+}
+
+var handleHealthCheckRequest = function(req, namespace, msgID) {
+    var responseBody = {
+        'header': {
+            'messageId': msgID,
+            'name': 'HealthCheckResponse',
+            'namespace': 'Alexa.ConnectedHome.System',
+            'payloadVersion': '2'
+        },
+        'payload': {
+            'description': 'The system is currently healthy',
+            'isHealthy': true
+        }
+    }
+    return responseBody
+}
+
+var processAction = function(value, topic, callback) {
+    if (!_.isNil(value) && !_.isNil(topic)) {
+        client.publish(topic, '' + value)
+        logging.info('alexa action', {
+            'action': 'alexa-request',
+            'topic': topic,
+            'value': value,
+        })
+    }
+
+    if (!_.isNil(callback))
+        callback()
+}
+
+var handleControlRequest = function(req, namespace, msgID) {
+    var controlRequest = req.body.header.name
+    var controlResponse = null
+
+    switch (controlRequest) {
+        case 'TurnOnRequest':
+            controlResponse = 'TurnOnConfirmation'
+            break
+
+        case 'TurnOffRequest':
+            controlResponse = 'TurnOffConfirmation'
+            break
+
+        default:
+            logging.error(' => Unhandled Control Request: ' + controlRequest, {
+                event: 'unsupported request',
+                control_request: controlRequest,
+                applianceId: applianceId
+            })
+            return null
+    }
+
+    var applianceId = req.body.payload.appliance.applianceId
+
+    logging.debug(' => Control Request: ' + controlRequest, {
+        controlRequest: controlRequest,
+        controlResponse: controlResponse,
+        applianceId: applianceId
+    })
+
+    var foundDeviceInfo = deviceInfoForApplianceId(applianceId)
+
+    if (_.isNil(foundDeviceInfo)) return null
+
+    var responseBody = {
+        'header': {
+            'messageId': msgID,
+            'name': controlResponse,
+            'namespace': 'Alexa.ConnectedHome.Control',
+            'payloadVersion': '2'
+        },
+        'payload': {}
+    }
+
+    const topic = foundDeviceInfo.topic
+    const actions = foundDeviceInfo.actions
+
+    switch (controlRequest) {
+        case 'TurnOnRequest':
+            if (!_.isNil(actions))
+                async.eachOf(actions['on'], processAction)
+            processAction('1', topic)
+
+            break
+        case 'TurnOffRequest':
+            if (!_.isNil(actions))
+                async.eachOf(actions['off'], processAction)
+            processAction('0', topic)
+
+            break
+    }
+
+    return responseBody
+}
+
 var processRequest = function(req) {
     const namespace = req.body.header.namespace
     const msgID = req.body.header.messageId
@@ -121,93 +212,15 @@ var processRequest = function(req) {
     switch (namespace) {
         case 'Alexa.ConnectedHome.Discovery':
             logging.debug(' => Discovery')
-            responseBody = {
-                'header': {
-                    'messageId': msgID,
-                    'namespace': 'Alexa.ConnectedHome.Discovery',
-                    'name': 'DiscoverAppliancesResponse',
-                    'payloadVersion': '2'
-
-                },
-                'payload': { discoveredAppliances: generateDeviceDiscoveryPayload() }
-            }
+            responseBody = handleDiscoveryRequest(req, namespace, msgID)
             break
         case 'Alexa.ConnectedHome.System':
             logging.debug(' => Health Ping')
-            responseBody = {
-                'header': {
-                    'messageId': msgID,
-                    'name': 'HealthCheckResponse',
-                    'namespace': 'Alexa.ConnectedHome.System',
-                    'payloadVersion': '2'
-                },
-                'payload': {
-                    'description': 'The system is currently healthy',
-                    'isHealthy': true
-                }
-            }
+            responseBody = handleHealthCheckRequest(req, namespace, msgID)
             break
         case 'Alexa.ConnectedHome.Control':
             logging.debug(' => Control Action')
-            var controlRequest = req.body.header.name
-            var controlResponse = ''
-            switch (controlRequest) {
-                case 'TurnOnRequest':
-                    controlResponse = 'TurnOnConfirmation'
-                    break
-                case 'TurnOffRequest':
-                    controlResponse = 'TurnOffConfirmation'
-                    break
-
-            }
-            var applianceId = req.body.payload.appliance.applianceId
-            logging.debug(' => Request: ' + controlRequest)
-            logging.debug(' => Response: ' + controlResponse)
-            logging.debug(' => applianceId: ' + applianceId)
-
-            responseBody = {
-                'header': {
-                    'messageId': msgID,
-                    'name': controlResponse,
-                    'namespace': 'Alexa.ConnectedHome.Control',
-                    'payloadVersion': '2'
-                },
-                'payload': {}
-            }
-            var foundDeviceInfo = deviceInfoForApplianceId(applianceId)
-            if (!_.isNil(foundDeviceInfo)) {
-                var processAction = function(value, topic, callback) {
-                    if (!_.isNil(value) && !_.isNil(topic)) {
-                        client.publish(topic, '' + value)
-                        logging.info('alexa action', {
-                            'action': 'alexa-request',
-                            'topic': topic,
-                            'value': value,
-                        })
-                    }
-
-                    if (!_.isNil(callback))
-                        callback()
-                }
-
-                const topic = foundDeviceInfo.topic
-                const actions = foundDeviceInfo.actions
-
-                switch (controlRequest) {
-                    case 'TurnOnRequest':
-                        if (!_.isNil(actions))
-                            async.eachOf(actions['on'], processAction)
-                        processAction('1', topic)
-
-                        break
-                    case 'TurnOffRequest':
-                        if (!_.isNil(actions))
-                            async.eachOf(actions['off'], processAction)
-                        processAction('0', topic)
-
-                        break
-                }
-            }
+            responseBody = handleControlRequest(req, namespace, msgID)
             break
         default:
             responseBody = {}
@@ -220,6 +233,8 @@ var processRequest = function(req) {
     return responseBody
 }
 
+
+
 var completeRequest = function(req, res, accessURL) {
     const responseBody = processRequest(req)
     logging.info('alexa-action-complete: ' + accessURL, {
@@ -228,7 +243,6 @@ var completeRequest = function(req, res, accessURL) {
     })
     res.send(responseBody)
 }
-
 
 // Web front end
 var app = express()
@@ -267,11 +281,11 @@ app.post('/alexa/*', function(req, res) {
             }
             const discoveredEmail = body.email
             if (discoveredEmail === alexaEmail) {
-                logging.debug('GOOD!')
+                logging.debug('Email passed')
                 cachedAccessToken = accessToken
-                logging.debug('caching token: ' + accessToken)
+                logging.debug('   => Caching token: ' + accessToken)
             } else {
-                logging.debug('*** BAD EMAIL BAILING ***')
+                logging.debug('*** Email does not match, failing ***')
                 cachedAccessToken = null
                 res.status(401)
                 return
