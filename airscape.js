@@ -1,26 +1,27 @@
 const logging = require('./logging.js')
+const _ = require('lodash')
 const request = require('request')
+const EventEmitter = require('events')
 const repeat = require('repeat')
 const xml_parser = require('xml2js')
 var current_speed = null
 
-var airscape_ip = null
-var client_callback = null
+const airscapeIP = process.env.AIRSCAPE_IP
 
-exports.set_ip = function(ip_address) {
-    airscape_ip = ip_address
+if (_.isNil(airscapeIP)) {
+    logging.warn('AIRSCAPE_IP not set, not starting')
+    process.abort()
 }
 
-exports.set_callback = function(callback) {
-    client_callback = callback
-    start_monitoring()
-}
+module.exports = new EventEmitter()
 
-exports.off = function() {
+startMonitoring()
+
+module.exports.off = function() {
     send_airscape_request(4, null)
 }
 
-exports.set_speed = function(target_speed) {
+module.exports.setSpeed = function(target_speed) {
     logging.info('Targeting speed: ' + target_speed)
     if (current_speed == target_speed) {
         logging.info('Same speed, bailing')
@@ -34,11 +35,11 @@ exports.set_speed = function(target_speed) {
         return
     }
 
-    repeat(speed_up).every(5, 's').times(target_speed).start.in(2, 'sec')
+    repeat(speedUp).every(5, 's').times(target_speed).start.in(2, 'sec')
 }
 
 function send_airscape_request(command, callback) {
-    var airscape_url = 'http://' + airscape_ip + '/fanspd.cgi'
+    var airscape_url = 'http://' + airscapeIP + '/fanspd.cgi'
 
     if (command != null) {
         airscape_url = airscape_url + '?dir=' + command
@@ -58,52 +59,52 @@ function send_airscape_request(command, callback) {
     })
 }
 
-function check_fan() {
+function checkFan() {
     logging.debug('Checking fan...')
 
     send_airscape_request(null, function(error, body) {
-        if (client_callback !== null && client_callback !== undefined) {
-            if (error !== null && error !== undefined) {
-                client_callback(error, null)
-                return
-            }
-            var body_list = null
-            var fixed_lines = null
-            var fixed_body = null
-
-            try {
-                body_list = body.split('\n')
-                fixed_lines = body_list.map(function(line) {
-                    return line.substr(line.indexOf('<'))
-                })
-                fixed_body = fixed_lines.join('\n')
-                fixed_body = '<?xml version="1.0" encoding="utf-8"?>\n<root>\n' + fixed_body + '</root>'
-            } catch (err) {
-                logging.error('error: ' + err)
-            }
-
-            logging.debug('fixed_body: ' + fixed_body)
-            xml_parser.parseString(fixed_body, { trim: true, normalize: true, normalizeTags: true }, function(err, result) {
-                try {
-                    logging.info('result: ' + Object.keys(result))
-                    var callback_value = (result != null && result.root != undefined) ? result.root : null
-                    if (callback_value != null && result.root != undefined)
-                        current_speed = result.root.fanspd
-                    client_callback(null, callback_value)
-                } catch (err) {
-                    logging.error('callback error: ' + err)
-                }
-            })
+        if (error !== null && error !== undefined) {
+            return
         }
+        var body_list = null
+        var fixed_lines = null
+        var fixed_body = null
+
+        try {
+            body_list = body.split('\n')
+            fixed_lines = body_list.map(function(line) {
+                return line.substr(line.indexOf('<'))
+            })
+            fixed_body = fixed_lines.join('\n')
+            fixed_body = '<?xml version="1.0" encoding="utf-8"?>\n<root>\n' + fixed_body + '</root>'
+        } catch (err) {
+            logging.error('error: ' + err)
+        }
+
+        logging.debug('fixed_body: ' + fixed_body)
+        xml_parser.parseString(fixed_body, { trim: true, normalize: true, normalizeTags: true }, function(err, result) {
+            try {
+                logging.debug('result: ' + Object.keys(result))
+                var callback_value = (!_.isNil(result) && !_.isNil(result.root)) ? result.root : null
+                if (!_.isNil(callback_value) && !_.isNil(result.root))
+                    current_speed = result.root.fanspd
+
+                if (!_.isNil(callback_value))
+                    module.exports.emit('fan-updated', callback_value)
+
+            } catch (err) {
+                logging.error('callback error: ' + err)
+            }
+        })
     })
 }
 
-function start_monitoring() {
-    logging.info('Starting to monitor: ' + airscape_ip)
-    repeat(check_fan).every(5, 's').start.in(1, 'sec')
+function startMonitoring() {
+    logging.info('Starting to monitor: ' + airscapeIP)
+    repeat(checkFan).every(5, 's').start.in(1, 'sec')
 }
 
-function speed_up() {
+function speedUp() {
     logging.info('... upping speed')
     send_airscape_request(1, null)
 }
