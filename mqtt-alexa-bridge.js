@@ -154,8 +154,7 @@ var handleControlRequest = function(req, namespace, msgID) {
         default:
             logging.error(' => Unhandled Control Request: ' + controlRequest, {
                 event: 'unsupported request',
-                control_request: controlRequest,
-                applianceId: applianceId
+                control_request: controlRequest
             })
             return null
     }
