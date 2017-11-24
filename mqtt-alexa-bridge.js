@@ -4,11 +4,11 @@ const express = require('express')
 const async = require('async')
 const request = require('request')
 const bodyParser = require('body-parser')
-const config = require('./homeautomation-js-lib/config_loading.js')
-const logging = require('./homeautomation-js-lib/logging.js')
+const config = require('homeautomation-js-lib/config_loading.js')
+const logging = require('homeautomation-js-lib/logging.js')
 const _ = require('lodash')
 
-require('./homeautomation-js-lib/mqtt_helpers.js')
+require('homeautomation-js-lib/mqtt_helpers.js')
 
 // Config
 const listening_port = process.env.LISTENING_PORT
