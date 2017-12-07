@@ -124,9 +124,9 @@ var handleHealthCheckRequest = function(req, namespace, msgID) {
     return responseBody
 }
 
-var processAction = function(value, topic, callback) {
+var processAction = function(shouldRetain, value, topic, callback) {
     if (!_.isNil(value) && !_.isNil(topic)) {
-        client.publish(topic, '' + value)
+        client.publish(topic, '' + value, { retain: shouldRetain })
         logging.info('alexa action', {
             'action': 'alexa-request',
             'topic': topic,
@@ -183,18 +183,22 @@ var handleControlRequest = function(req, namespace, msgID) {
 
     const topic = foundDeviceInfo.topic
     const actions = foundDeviceInfo.actions
+    var options = foundDeviceInfo.options
+
+    if (_.isNil(options))
+        options = {}
 
     switch (controlRequest) {
         case 'TurnOnRequest':
             if (!_.isNil(actions))
-                async.eachOf(actions['on'], processAction)
-            processAction('1', topic)
+                async.eachOf(actions['on'], processAction.bind(undefined, options.retain))
+            processAction(options.retain, '1', topic)
 
             break
         case 'TurnOffRequest':
             if (!_.isNil(actions))
-                async.eachOf(actions['off'], processAction)
-            processAction('0', topic)
+                async.eachOf(actions['off'], processAction.bind(undefined, options.retain))
+            processAction(options.retain, '0', topic)
 
             break
     }
