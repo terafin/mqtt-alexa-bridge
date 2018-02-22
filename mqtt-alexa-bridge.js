@@ -7,6 +7,7 @@ const bodyParser = require('body-parser')
 const config = require('homeautomation-js-lib/config_loading.js')
 const logging = require('homeautomation-js-lib/logging.js')
 const _ = require('lodash')
+const health = require('homeautomation-js-lib/health.js')
 
 require('homeautomation-js-lib/mqtt_helpers.js')
 
@@ -109,6 +110,8 @@ var handleDiscoveryRequest = function(req, namespace, msgID) {
 }
 
 var handleHealthCheckRequest = function(req, namespace, msgID) {
+    health.healthyEvent()
+
     var responseBody = {
         'header': {
             'messageId': msgID,
@@ -125,6 +128,8 @@ var handleHealthCheckRequest = function(req, namespace, msgID) {
 }
 
 var processAction = function(shouldRetain, value, topic, callback) {
+    health.healthyEvent()
+
     if (!_.isNil(value) && !_.isNil(topic)) {
         client.publish(topic, '' + value, { retain: shouldRetain })
         logging.info('alexa action', {
@@ -139,6 +144,8 @@ var processAction = function(shouldRetain, value, topic, callback) {
 }
 
 var handleControlRequest = function(req, namespace, msgID) {
+    health.healthyEvent()
+
     var controlRequest = req.body.header.name
     var controlResponse = null
 
@@ -207,6 +214,8 @@ var handleControlRequest = function(req, namespace, msgID) {
 }
 
 var processRequest = function(req) {
+    health.healthyEvent()
+
     const namespace = req.body.header.namespace
     const msgID = req.body.header.messageId
     logging.debug('namespace: ' + namespace)
@@ -255,6 +264,8 @@ app.use(bodyParser.json())
 var cachedAccessToken = null
 
 app.post('/alexa/*', function(req, res) {
+    health.healthyEvent()
+
     // First verify our access token
     logging.debug('request body: ' + JSON.stringify(req.body.payload))
     var accessToken = req.body.payload.accessToken
