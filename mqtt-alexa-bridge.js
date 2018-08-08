@@ -39,7 +39,7 @@ if (_.isNil(alexaEmail)) {
 }
 
 // ALWAYS setup the alexa app and attach it to express before anything else.
-const endpoint = 'home'
+const endpoint = 'alexa'
 const alexaApp = new alexa.app(endpoint)
 const app = express()
 
