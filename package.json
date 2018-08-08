@@ -11,11 +11,12 @@
         "start": "node mqtt-alexa-bridge.js"
     },
     "dependencies": {
-        "async": "^2.4.0",
-        "body-parser": "^1.17.1",
-        "express": "*",
-        "lodash": "^4.17.4",
-        "mqtt": "^2.15.0",
+        "async": "latest",
+        "body-parser": "latest",
+        "express": "latest",
+        "lodash": "latest",
+        "mqtt": "latest",
+        "alexa-smart-home-app": "latest",
         "homeautomation-js-lib": "git://github.com/terafin/homeautomation-js-lib.git",
         "request": "^2.81.0"
     },
