@@ -38,13 +38,14 @@ if (_.isNil(alexaEmail)) {
 	process.abort()
 }
 
-// ALWAYS setup the alexa app and attach it to express before anything else.
+const app = express()
 const endpoint = 'alexa'
 const alexaApp = new alexa.app(endpoint)
-const app = express()
 
 alexaApp.express({
+	endpoint: 'alexa',
 	expressApp: app,
+	debug: true
 })
 
 app.set('view engine', 'ejs')
@@ -248,5 +249,5 @@ const generateDeviceDiscoveryPayload = function() {
 // 	}
 // })
 
-app.listen(listening_port)
-logging.info('Alexa-MQTT Bridge listening on port: ', listening_port)
+app.listen(listening_port, () => logging.info('Alexa-MQTT Bridge listening on port: ', listening_port))
+
