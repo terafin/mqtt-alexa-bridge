@@ -1,14 +1,35 @@
 // Requirements
 const mqtt = require('mqtt')
-const express = require('express')
 const async = require('async')
-const request = require('request')
+const express = require('express')
 const alexa = require('alexa-smart-home-app')
-const bodyParser = require('body-parser')
 const config = require('homeautomation-js-lib/config_loading.js')
 const logging = require('homeautomation-js-lib/logging.js')
 const _ = require('lodash')
 const health = require('homeautomation-js-lib/health.js')
+
+const namespaceToFunctionMap = {
+	'Alexa.PowerController': handlePowerController
+}
+
+const namespaceToStateNameMap = {
+	'Alexa.PowerController': 'powerState'
+}
+
+const alexaActionToYAMLMap = {
+	'TurnOn': 'on',
+	'TurnOff': 'off'
+}
+
+const alexaActionToResultMap = {
+	'TurnOn': 'ON',
+	'TurnOff': 'OFF'
+}
+
+const yamlActionToDefaultMessageMap = {
+	'on': '1',
+	'off': '0'
+}
 
 require('homeautomation-js-lib/mqtt_helpers.js')
 
@@ -68,99 +89,254 @@ config.on('config-loaded', () => {
 			topic: deviceConfig.topic
 		}
 		devicesConfig.push(deviceInfo)
-		logging.debug('  found device info', deviceInfo)
+		logging.info('  found device info', deviceInfo)
 	})
 })
+
+
+const findEndpoint = function(endpointId) {
+	var endpoint = null
+
+	config.deviceIterator(function(deviceName, deviceConfig) {
+		if ( !_.isNil(endpoint) ) {
+			return 
+		}
+
+		var deviceInfo = {
+			name: deviceName,
+			spoken_name: deviceConfig.name,
+			actions: deviceConfig.actions,
+			topic: deviceConfig.topic
+		}
+
+		const thisEndpoint = 'appliance-' + deviceName
+		if ( thisEndpoint == endpointId ) { 
+			endpoint = deviceInfo 
+		}
+	})
+
+	return endpoint
+}
 
 alexaApp.alexa((request, response) => {
 	// what is this?
-	response.endpoint({
-		endpointId: 'uniqueIdOfCameraEndpoint',
-		manufacturerName: 'the manufacturer name of the endpoint',
-		modelName: 'the model name of the endpoint',
-		friendlyName: 'Camera',
-		description: 'a description that is shown to the customer',
-		displayCategories: ['CAMERA'],
-		cookie: {
-			key1: 'arbitrary key/value pairs for skill to reference this endpoint.',
-			key2: 'There can be multiple entries',
-			key3: 'but they should only be used for reference purposes.',
-			key4: 'This is not a suitable place to maintain current endpoint state.',
-		},
-		capabilities: [{
-			type: 'AlexaInterface',
-			interface: 'Alexa.CameraStreamController',
-			version: '3',
-			cameraStreamConfigurations: [{
-				protocols: ['RTSP'],
-				resolutions: [{width: 1920, height: 1080}, {width: 1280, height: 720}],
-				authorizationTypes: ['BASIC'],
-				videoCodecs: ['H264', 'MPEG2'],
-				audioCodecs: ['G711'],
-			},
-			{
-				protocols: ['RTSP'],
-				resolutions: [{width: 1920, height: 1080}, {width: 1280, height: 720}],
-				authorizationTypes: ['NONE'],
-				videoCodecs: ['H264'],
-				audioCodecs: ['AAC'],
-			}],
-		}],
-	})
+	logging.info('alexa?')
 })
   
 alexaApp.discovery((request, response) => {
-	response.endpoint({
-		endpointId: 'uniqueIdOfCameraEndpoint',
-		manufacturerName: 'the manufacturer name of the endpoint',
-		modelName: 'the model name of the endpoint',
-		friendlyName: 'Camera',
-		description: 'a description that is shown to the customer',
-		displayCategories: ['CAMERA'],
-		cookie: {
-			key1: 'arbitrary key/value pairs for skill to reference this endpoint.',
-			key2: 'There can be multiple entries',
-			key3: 'but they should only be used for reference purposes.',
-			key4: 'This is not a suitable place to maintain current endpoint state.',
-		},
-		capabilities: [{
-			type: 'AlexaInterface',
-			interface: 'Alexa.CameraStreamController',
-			version: '3',
-			cameraStreamConfigurations: [{
-				protocols: ['RTSP'],
-				resolutions: [{width: 1920, height: 1080}, {width: 1280, height: 720}],
-				authorizationTypes: ['BASIC'],
-				videoCodecs: ['H264', 'MPEG2'],
-				audioCodecs: ['G711'],
-			},
-			{
-				protocols: ['RTSP'],
-				resolutions: [{width: 1920, height: 1080}, {width: 1280, height: 720}],
-				authorizationTypes: ['NONE'],
-				videoCodecs: ['H264'],
-				audioCodecs: ['AAC'],
+	config.deviceIterator(function(deviceName, deviceConfig) {
+		var deviceInfo = {
+			name: deviceName,
+			spoken_name: deviceConfig.name,
+			actions: deviceConfig.actions,
+			topic: deviceConfig.topic
+		}
+
+		logging.info('  found device info: ' +  JSON.stringify(deviceInfo))
+
+		response.endpoint({
+			endpointId: 'appliance-' + deviceName,
+			manufacturerName: 'terafin-landia-hardware',
+			modelName: 'terafin-model',
+			friendlyName: deviceConfig.name,
+			description: 'a description of: ' + deviceName,
+			displayCategories: ['LIGHT'],
+
+			capabilities: [{
+				type: 'AlexaInterface',
+				interface: 'Alexa.PowerController',
+				version: '3',
+				properties: {
+					supported: [{
+						name: 'powerState'
+					}],
+					proactivelyReported: true,
+					retrievable: false
+				},
 			}],
-		}],
+		})
 	})
 })
   
 
-app.post = function(request, response, namespace, exception) {
+alexaApp.post = function(request, response, namespace, exception) {
+	logging.info('post')
 	if (exception) {
 		logging.error('exception thrown: ' + exception)
 		// always turn an exception into a successful response
 		return response.send()
 	}
 }
-  
+
+const processRequest = function(request, stateName) {
+	var result = {}
+	const currentTime = '2017-09-27T18:30:30.45Z' // NEED TO FIX TIME
+
+	// ================================================
+
+	const directive = request.data.directive
+	
+	const namespace = directive.header.namespace
+	
+	const correlationToken = directive.header.correlationToken
+	const messageID = directive.header.messageId
+	const action = directive.header.name
+
+	const endpoint = directive.endpoint
+	const endpointId = endpoint.endpointId
+
+	const bearerToken = endpoint.scope.token
+
+	const deviceEndpoint = findEndpoint(endpointId)
+
+	// ================================================
+
+	if ( !_.isNil(deviceEndpoint) ) {
+		logging.info('DO ACTION FOR: ' + JSON.stringify(deviceEndpoint))
+	} else {
+		logging.error('no device found for: ' + endpointId)
+	}
+
+	const resultValue = alexaActionToResultMap[action]
+		
+	result.action = action
+	result.endpoint = deviceEndpoint
+	result.endpointId = endpointId
+	
+	result.request = request
+	result.stateName = stateName
+	result.response = {
+		context: {
+			properties: [{
+				namespace: namespace,
+				name: stateName,
+				value: resultValue,
+				timeOfSample: currentTime,
+				uncertaintyInMilliseconds: 200
+			},
+			{
+				namespace: 'Alexa.EndpointHealth',
+				name: 'connectivity',
+				value: {
+					'value': 'OK'
+				},
+				timeOfSample: currentTime,
+				uncertaintyInMilliseconds: 200
+			}]
+		},
+		event: {
+			header: {
+				namespace: 'Alexa',
+				name: 'Response',
+				payloadVersion: '3',
+				messageId: messageID,
+				correlationToken: correlationToken
+			},
+			endpoint: {
+				scope: {
+					type: 'BearerToken',
+					token: bearerToken
+				},
+				endpointId: endpointId
+			},
+			payload: {}
+		}
+	} 
+
+	return result
+}
+
+var processAction = function(shouldRetain, value, topic, callback) {
+	if (!_.isNil(value) && !_.isNil(topic)) {
+		client.publish(topic, '' + value, {retain: shouldRetain})
+		logging.info('alexa action', {
+			'action': 'alexa-request',
+			'topic': topic,
+			'value': value,
+		})
+	}
+
+	if (!_.isNil(callback)) {
+		return callback() 
+	}
+
+	return true
+}
+
+const handleDeviceAction = function(controlRequest, endpoint) {
+	const topic = endpoint.topic
+	const actions = endpoint.actions
+	var options = endpoint.options
+
+	if (_.isNil(options)) { 
+		options = {}
+	}
+
+	const yamlKey = alexaActionToYAMLMap[controlRequest]
+	const defaultMessage = yamlActionToDefaultMessageMap[yamlKey]
+
+	if (!_.isNil(actions)) {
+		async.eachOf(actions[yamlKey], processAction.bind(undefined, options.retain))
+	}
+	processAction(options.retain, defaultMessage, topic)
+}
+
+const handlePowerController = function(response) {
+	const deviceEndpoint = response.endpoint
+	const action = response.action
+	// ================================================
+
+	if ( !_.isNil(deviceEndpoint) ) {
+		handleDeviceAction(action, deviceEndpoint)
+	} else {
+		logging.error('no device found for: ' + response.endpointId)
+	}
+	
+	return response.response
+}
+
+const processNamespace = function(namespace, request) {
+	const stateName = namespaceToStateNameMap[namespace]
+	var responseJSON = null
+	var response = null
+
+	logging.info('request: ' + JSON.stringify(request))
+
+	if ( !_.isNil(stateName) ) { 
+		response = processRequest(request, stateName) 
+	
+		const processFunction = namespaceToFunctionMap[namespace]
+		if ( !_.isNil(processFunction) ) { 
+			responseJSON = processFunction(response) 
+		}
+	}
+
+	return responseJSON
+}
+
 // Token validation
-// app.pre = function(request, response, namespace) {
-// 	if (request.hasPayload() && request.getPayload().token != 'User Token') {
-// 		// fail ungracefully
-// 		throw 'Invalid token'
-// 	}
-// }
+alexaApp.pre = function(request, response, namespace) {
+	logging.info('pre: ' + namespace)
+
+	var responseJSON = processNamespace(namespace, request)
+
+	if ( !_.isNil(responseJSON) ) {
+		response.prepare()
+		
+		Object.keys(responseJSON).forEach(key => {
+			const value = responseJSON[key]
+			response.payloadObject.set(key, value)
+
+		})
+
+		return response.send()
+	}
+
+	// if (request.hasPayload() && request.getPayload().token != 'User Token') {
+	// 	// fail ungracefully
+	// 	throw 'Invalid token'
+	// }
+}
   
 // alexaApp.cameraStreamController((request, response) => {
 // 	response.cameraStream({
@@ -178,28 +354,6 @@ app.post = function(request, response, namespace, exception) {
 // 	})
 // })
   
-const generateDeviceDiscoveryPayload = function() {
-	var deviceInfo = []
-
-	devicesConfig.forEach(function(device) {
-		deviceInfo.push({
-			'actions': ['turnOn',
-				'turnOff'],
-			'additionalApplianceDetails': {
-				extraDetail1: 'optionalDetailForSkillAdapterToReferenceThisDevice'
-			},
-			'applianceId': device.name,
-			'friendlyDescription': device.spoken_name,
-			'friendlyName': device.spoken_name,
-			'isReachable': true,
-			'manufacturerName': 'AlexaMQTTBridge',
-			'modelName': 'AlexaMQTTBridgeSwitch',
-			'version': 'MQTTV1'
-		})
-	}, this)
-
-	return deviceInfo
-}
 // var cachedAccessToken = null
 
 // app.post('/alexa/*', function(req, res) {
