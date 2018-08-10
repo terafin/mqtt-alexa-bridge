@@ -8,29 +8,6 @@ const logging = require('homeautomation-js-lib/logging.js')
 const _ = require('lodash')
 const health = require('homeautomation-js-lib/health.js')
 
-const namespaceToFunctionMap = {
-	'Alexa.PowerController': handlePowerController
-}
-
-const namespaceToStateNameMap = {
-	'Alexa.PowerController': 'powerState'
-}
-
-const alexaActionToYAMLMap = {
-	'TurnOn': 'on',
-	'TurnOff': 'off'
-}
-
-const alexaActionToResultMap = {
-	'TurnOn': 'ON',
-	'TurnOff': 'OFF'
-}
-
-const yamlActionToDefaultMessageMap = {
-	'on': '1',
-	'off': '0'
-}
-
 require('homeautomation-js-lib/mqtt_helpers.js')
 
 // Config
@@ -198,7 +175,7 @@ const processRequest = function(request, stateName) {
 	}
 
 	const resultValue = alexaActionToResultMap[action]
-		
+
 	result.action = action
 	result.endpoint = deviceEndpoint
 	result.endpointId = endpointId
@@ -294,6 +271,32 @@ const handlePowerController = function(response) {
 	
 	return response.response
 }
+
+
+
+const namespaceToFunctionMap = {
+	'Alexa.PowerController': handlePowerController
+}
+
+const namespaceToStateNameMap = {
+	'Alexa.PowerController': 'powerState'
+}
+
+const alexaActionToYAMLMap = {
+	'TurnOn': 'on',
+	'TurnOff': 'off'
+}
+
+const alexaActionToResultMap = {
+	'TurnOn': 'ON',
+	'TurnOff': 'OFF'
+}
+
+const yamlActionToDefaultMessageMap = {
+	'on': '1',
+	'off': '0'
+}
+
 
 const processNamespace = function(namespace, request) {
 	const stateName = namespaceToStateNameMap[namespace]
