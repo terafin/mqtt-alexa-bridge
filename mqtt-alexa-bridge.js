@@ -5,7 +5,6 @@ const config = require('homeautomation-js-lib/config_loading.js')
 const logging = require('homeautomation-js-lib/logging.js')
 const _ = require('lodash')
 const health = require('homeautomation-js-lib/health.js')
-const ip = require('ip')
 const wemore = require('wemore')
 
 
@@ -43,10 +42,14 @@ var processAction = function(shouldRetain, value, topic, callback) {
 }
 
 const handleDeviceAction = function(action, deviceConfig) {
-	const message = action == 'on' ? '1' : '0'
 	const topic = deviceConfig.topic
-	const actions = deviceConfig.actions
+	const actions = action == 'on' ? deviceConfig.onActions : deviceConfig.offActions
+	var message = action == 'on' ? deviceConfig.onValue : deviceConfig.offValue
 	var options = deviceConfig.options
+
+	if ( _.isNil(message) ) {
+		message = action == 'on' ? '1' : '0'
+	}
 
 	if (_.isNil(options)) { 
 		options = {}
