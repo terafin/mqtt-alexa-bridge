@@ -27,11 +27,7 @@ config.load_path(configPath)
 var processAction = function(shouldRetain, value, topic, callback) {
 	if (!_.isNil(value) && !_.isNil(topic)) {
 		client.publish(topic, '' + value, {retain: shouldRetain})
-		logging.info('alexa action', {
-			'action': 'alexa-request',
-			'topic': topic,
-			'value': value,
-		})
+		logging.info('alexa action' + JSON.stringify({'action': 'alexa-request', 'topic': topic, 'value': value}))
 	}
 
 	if (!_.isNil(callback)) {
