@@ -39,7 +39,7 @@ var processAction = function(shouldRetain, value, topic, callback) {
 
 const handleDeviceAction = function(action, deviceConfig) {
 	const topic = deviceConfig.topic
-	const actions = action == 'on' ? deviceConfig.onActions : deviceConfig.offActions
+	const actions = action == 'on' ? deviceConfig.actions.on : deviceConfig.actions.off
 	var message = action == 'on' ? deviceConfig.onValue : deviceConfig.offValue
 	var options = deviceConfig.options
 
