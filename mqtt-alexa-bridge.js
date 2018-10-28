@@ -72,11 +72,11 @@ config.on('config-loaded', () => {
 		var thisDevice = wemore.Emulate({friendlyName: deviceConfig.name, port: deviceConfig.port})
 
 		thisDevice.on('listening', function() {
-			logging.info(deviceConfig.name + ' listening on', this.port)
+			logging.info(deviceConfig.name + ' setup on port: ' + this.port)
 		})
 
 		thisDevice.on('state', function(binaryState, self, sender) {
-			logging.info(deviceConfig.name + ' set to=', binaryState)
+			logging.info(deviceConfig.name + ' set to=' + binaryState)
 		})
 
 		// also, 'on' and 'off' events corresponding to binary state
@@ -90,17 +90,7 @@ config.on('config-loaded', () => {
 			handleDeviceAction('off', deviceConfig)
 		})
 
-		var deviceInfo = {
-			name: deviceConfig.name,
-			port: deviceConfig.port,
-			handler: (action) => {
-				logging.info(deviceName + ' action:' + action)
-				logging.info(deviceName + ' actions:' +  deviceConfig.actions)
-				logging.info(deviceName + ' topic:' +  deviceConfig.topic)
-			}
-		}
-
-		logging.info('  found device info', deviceInfo)
+		logging.info('  found device info: ' + deviceConfig)
 	})	
 })
 
