@@ -59,34 +59,35 @@ const handleDeviceAction = function(action, deviceConfig) {
 }
 
 
+const setupDevice = function(deviceConfig) {
+	var thisDevice = wemore.Emulate({friendlyName: deviceConfig.name, port: deviceConfig.port})
 
+	thisDevice.on('listening', function() {
+		logging.info(deviceConfig.name + ' setup on port: ' + this.port)
+	})
+
+	thisDevice.on('state', function(binaryState, self, sender) {
+		logging.info(deviceConfig.name + ' set to=' + binaryState)
+	})
+
+	// also, 'on' and 'off' events corresponding to binary state
+	thisDevice.on('on', function(self, sender) {
+		logging.info(deviceConfig.name + ' turned on')
+		handleDeviceAction('on', deviceConfig)
+	})
+
+	thisDevice.on('off', function(self, sender) {
+		logging.info(deviceConfig.name + ' turned off')
+		handleDeviceAction('off', deviceConfig)
+	})
+
+}
 config.on('config-loaded', () => {
 	logging.debug('  Alexa config loaded')
 
 	config.deviceIterator(function(deviceName, deviceConfig) {
-
-		var thisDevice = wemore.Emulate({friendlyName: deviceConfig.name, port: deviceConfig.port})
-
-		thisDevice.on('listening', function() {
-			logging.info(deviceConfig.name + ' setup on port: ' + this.port)
-		})
-
-		thisDevice.on('state', function(binaryState, self, sender) {
-			logging.info(deviceConfig.name + ' set to=' + binaryState)
-		})
-
-		// also, 'on' and 'off' events corresponding to binary state
-		thisDevice.on('on', function(self, sender) {
-			logging.info(deviceConfig.name + ' turned on')
-			handleDeviceAction('on', deviceConfig)
-		})
-
-		thisDevice.on('off', function(self, sender) {
-			logging.info(deviceConfig.name + ' turned off')
-			handleDeviceAction('off', deviceConfig)
-		})
-
-		logging.info('  found device info: ' + deviceConfig)
+		setupDevice(deviceConfig)
+		logging.info('  found device info: ' + JSON.stringify(deviceConfig))
 	})	
 })
 
