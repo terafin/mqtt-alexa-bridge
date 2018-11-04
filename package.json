@@ -16,6 +16,7 @@
         "lodash": "latest",
         "mqtt": "latest",
         "wemore": "latest",
+        "md5": "latest",
         "request": "latest"
     },
     "engines": {

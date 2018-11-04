@@ -6,6 +6,7 @@ const logging = require('homeautomation-js-lib/logging.js')
 const _ = require('lodash')
 const health = require('homeautomation-js-lib/health.js')
 const wemore = require('wemore')
+var md5 = require('md5')
 
 
 
@@ -60,10 +61,12 @@ const handleDeviceAction = function(action, deviceConfig) {
 
 
 const setupDevice = function(deviceConfig) {
-	var thisDevice = wemore.Emulate({friendlyName: deviceConfig.name, port: deviceConfig.port})
+	const hash = md5(deviceConfig.name)
+	const deviceOptions = {friendlyName: deviceConfig.name, port: deviceConfig.port, uuid: hash, serial: hash}
+	var thisDevice = wemore.Emulate(deviceOptions)
 
 	thisDevice.on('listening', function() {
-		logging.info(deviceConfig.name + ' setup on port: ' + this.port)
+		logging.info(deviceConfig.name + ' setup:' + JSON.stringify(deviceOptions))
 	})
 
 	thisDevice.on('state', function(binaryState, self, sender) {
