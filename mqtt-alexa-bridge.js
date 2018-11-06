@@ -66,7 +66,7 @@ const handleDeviceAction = function(action, deviceConfig) {
 
 const setupDevice = function(deviceConfig) {
 	const hash = md5(deviceConfig.name).substr(0, 6).toUpperCase() + 'F0101C00'
-	const deviceOptions = {friendlyName: deviceConfig.name, port: deviceConfig.port, uuid: hash, serial: hash}
+	const deviceOptions = {friendlyName: deviceConfig.name, port: deviceConfig.port, serial: hash}
 	var thisDevice = wemore.Emulate(deviceOptions)
 
 	thisDevice.on('listening', function() {
