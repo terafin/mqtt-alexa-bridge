@@ -8,9 +8,13 @@ const health = require('homeautomation-js-lib/health.js')
 const wemore = require('wemore')
 var md5 = require('md5')
 
-
-
 require('homeautomation-js-lib/mqtt_helpers.js')
+
+ 
+// var discovery = wemore.Discover()
+// 	.on('device', function(device) {
+// 		console.log('discovered device: ' + JSON.stringify(device))
+// 	})
 
 // Config
 const configPath = process.env.CONFIG_PATH
@@ -61,7 +65,7 @@ const handleDeviceAction = function(action, deviceConfig) {
 
 
 const setupDevice = function(deviceConfig) {
-	const hash = md5(deviceConfig.name)
+	const hash = md5(deviceConfig.name).substr(0, 6).toUpperCase() + 'F0101C00'
 	const deviceOptions = {friendlyName: deviceConfig.name, port: deviceConfig.port, uuid: hash, serial: hash}
 	var thisDevice = wemore.Emulate(deviceOptions)
 
