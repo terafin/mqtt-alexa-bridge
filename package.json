@@ -17,7 +17,8 @@
         "mqtt": "latest",
         "wemore": "latest",
         "md5": "latest",
-        "request": "latest"
+        "request": "latest",
+        "uuid": "latest"
     },
     "engines": {
         "node": ">=4"

@@ -7,10 +7,13 @@ const _ = require('lodash')
 const health = require('homeautomation-js-lib/health.js')
 const wemore = require('wemore')
 var md5 = require('md5')
+const uuidv5 = require('uuid/v5')
+
+const uuidNamespace = '2c631a61-40d5-491e-99b0-deadbeef1337'
 
 require('homeautomation-js-lib/mqtt_helpers.js')
 
- 
+
 // var discovery = wemore.Discover()
 // 	.on('device', function(device) {
 // 		console.log('discovered device: ' + JSON.stringify(device))
@@ -65,8 +68,9 @@ const handleDeviceAction = function(action, deviceConfig) {
 
 
 const setupDevice = function(deviceConfig) {
+	const uuidString = 'Socket-1_0-' + uuidv5(deviceConfig.name, uuidNamespace)
 	const hash = md5(deviceConfig.name).substr(0, 6).toUpperCase() + 'F0101C00'
-	const deviceOptions = {friendlyName: deviceConfig.name, port: deviceConfig.port, serial: hash}
+	const deviceOptions = {friendlyName: deviceConfig.name, port: deviceConfig.port, serial: hash, uuid: uuidString}
 	var thisDevice = wemore.Emulate(deviceOptions)
 
 	thisDevice.on('listening', function() {
