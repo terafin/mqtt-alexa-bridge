@@ -15,10 +15,7 @@
         "homeautomation-js-lib": "git://github.com/terafin/homeautomation-js-lib.git",
         "lodash": "latest",
         "mqtt": "latest",
-        "wemore": "latest",
-        "md5": "latest",
-        "request": "latest",
-        "uuid": "latest"
+        "alexa-remote2": "latest"
     },
     "engines": {
         "node": ">=4"

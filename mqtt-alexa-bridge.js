@@ -5,100 +5,80 @@ const config = require('homeautomation-js-lib/config_loading.js')
 const logging = require('homeautomation-js-lib/logging.js')
 const _ = require('lodash')
 const health = require('homeautomation-js-lib/health.js')
-const wemore = require('wemore')
-var md5 = require('md5')
-const uuidv5 = require('uuid/v5')
+const Alexa = require('alexa-remote2')
+const alexa = new Alexa()
 
-const uuidNamespace = '2c631a61-40d5-491e-99b0-deadbeef1337'
+var topic_prefix = process.env.TOPIC_PREFIX
+var cookie = process.env.ALEXA_COOKIE
+var username = process.env.ALEXA_EMAIL
+var password = process.env.ALEXA_PASSWORD
+var userAgent = process.env.ALEXA_USER_AGENT
+var alexaServiceHost = process.env.ALEXA_SERVICE_HOST
+var acceptLanguage = process.env.ALEXA_ACCEPT_LANGUAGE
+var amazonPage = process.env.ALEXA_AMAZON_PAGE
+
+if (_.isNil(topic_prefix)) {
+	logging.warn('empty topic prefix, using /alexa')
+	topic_prefix = '/alexa/'
+}
 
 require('homeautomation-js-lib/mqtt_helpers.js')
 
+var connectedEvent = function() {
+	logging.info('MQTT Connected')
+	client.subscribe(topic_prefix + '/#', {qos: 2})
+	health.healthyEvent()
+}
 
-// var discovery = wemore.Discover()
-// 	.on('device', function(device) {
-// 		console.log('discovered device: ' + JSON.stringify(device))
-// 	})
+var disconnectedEvent = function() {
+	logging.error('Reconnecting...')
+	health.unhealthyEvent()
+}
 
-// Config
-const configPath = process.env.CONFIG_PATH
+// Setup MQTT
+var client = mqtt.setupClient(connectedEvent, disconnectedEvent)
 
-if (_.isNil(configPath)) {
-	logging.warn('CONFIG_PATH not set, not starting')
+if (_.isNil(client)) {
+	logging.warn('MQTT Client Failed to Startup')
 	process.abort()
 }
 
-var client = mqtt.setupClient()
+// MQTT Observation
 
-config.load_path(configPath)
+client.on('message', (topic, message) => {
+	topic = topic.replace(topic_prefix + '/', '')
 
+	var components = topic.split('/')
+	
+	const nameOrSerial = components[0]
+	const command = components[1]
 
-var processAction = function(shouldRetain, value, topic, callback) {
-	if (!_.isNil(value) && !_.isNil(topic)) {
-		client.publish(topic, '' + value, {retain: shouldRetain})
-		logging.info('alexa action' + JSON.stringify({'action': 'alexa-request', 'topic': topic, 'value': value}))
-	}
-
-	if (!_.isNil(callback)) {
-		return callback() 
-	}
-
-	return true
-}
-
-const handleDeviceAction = function(action, deviceConfig) {
-	const topic = deviceConfig.topic
-	const actions = null//action == _.isNil(deviceConfig.actions) ? null : (action == 'on' ? deviceConfig.actions.on : deviceConfig.actions.off)
-	var message = action == 'on' ? deviceConfig.onValue : deviceConfig.offValue
-	var options = deviceConfig.options
-
-	if ( _.isNil(message) ) {
-		message = action == 'on' ? '1' : '0'
-	}
-
-	if (_.isNil(options)) { 
-		options = {}
-	}
-
-	if (!_.isNil(actions)) {
-		async.eachOf(actions, processAction.bind(undefined, options.retain))
-	}
-
-	processAction(options.retain, message, topic)
-}
-
-
-const setupDevice = function(deviceConfig) {
-	const uuidString = 'Socket-1_0-' + uuidv5(deviceConfig.name, uuidNamespace)
-	const hash = md5(deviceConfig.name).substr(0, 6).toUpperCase() + 'F0101C00'
-	const deviceOptions = {friendlyName: deviceConfig.name, port: deviceConfig.port, serial: hash, uuid: uuidString}
-	var thisDevice = wemore.Emulate(deviceOptions)
-
-	thisDevice.on('listening', function() {
-		logging.info(deviceConfig.name + ' setup:' + JSON.stringify(deviceOptions))
-	})
-
-	thisDevice.on('state', function(binaryState, self, sender) {
-		logging.info(deviceConfig.name + ' set to=' + binaryState)
-	})
-
-	// also, 'on' and 'off' events corresponding to binary state
-	thisDevice.on('on', function(self, sender) {
-		logging.info(deviceConfig.name + ' turned on')
-		handleDeviceAction('on', deviceConfig)
-	})
-
-	thisDevice.on('off', function(self, sender) {
-		logging.info(deviceConfig.name + ' turned off')
-		handleDeviceAction('off', deviceConfig)
-	})
-
-}
-config.on('config-loaded', () => {
-	logging.debug('  Alexa config loaded')
-
-	config.deviceIterator(function(deviceName, deviceConfig) {
-		setupDevice(deviceConfig)
-		logging.info('  found device info: ' + JSON.stringify(deviceConfig))
-	})	
+	alexa.sendSequenceCommand(nameOrSerial, command, message)
 })
+
+alexa.init({
+	cookie: cookie,  // cookie if already known, else can be generated using email/password
+	email: username,    // optional, amazon email for login to get new cookie
+	password: password, // optional, amazon password for login to get new cookie
+	proxyOnly: false,
+	proxyOwnIp: 'localhost',
+	proxyPort: 3001,
+	proxyLogLevel: 'info',
+	bluetooth: true,
+	// logger: console.log, // optional
+	userAgent: userAgent,
+	alexaServiceHost: alexaServiceHost,
+	acceptLanguage: acceptLanguage,
+	amazonPage: amazonPage,
+	useWsMqtt: true, // optional, true to use the Websocket/MQTT direct push connection
+	//	cookieRefreshInterval: 7*24*60*1000 // optional, cookie refresh intervall, set to 0 to disable refresh
+	cookieRefreshInterval: 5000 // optional, cookie refresh intervall, set to 0 to disable refresh
+},
+function(err) {
+	if (err) {
+		logging.error('Setup error:' + err)
+		return
+	}
+}
+)
 
