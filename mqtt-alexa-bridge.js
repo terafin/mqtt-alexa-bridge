@@ -71,8 +71,7 @@ alexa.init({
 	acceptLanguage: acceptLanguage,
 	amazonPage: amazonPage,
 	useWsMqtt: true, // optional, true to use the Websocket/MQTT direct push connection
-	//	cookieRefreshInterval: 7*24*60*1000 // optional, cookie refresh intervall, set to 0 to disable refresh
-	cookieRefreshInterval: 5000 // optional, cookie refresh intervall, set to 0 to disable refresh
+	cookieRefreshInterval: 5*24*60*1000 // optional, cookie refresh intervall, set to 0 to disable refresh
 },
 function(err) {
 	if (err) {
