@@ -1,7 +1,5 @@
 // Requirements
 const mqtt = require('mqtt')
-const async = require('async')
-const config = require('homeautomation-js-lib/config_loading.js')
 const logging = require('homeautomation-js-lib/logging.js')
 const _ = require('lodash')
 const health = require('homeautomation-js-lib/health.js')
@@ -47,30 +45,34 @@ if (_.isNil(client)) {
 
 client.on('message', (topic, message) => {
 	topic = topic.replace(topic_prefix + '/', '')
+	logging.info('Received ' + topic + ' : ' + message)
 
 	var components = topic.split('/')
 	
 	const nameOrSerial = components[0]
 	const command = components[1]
+	logging.info(' => nameOrSerial: ' + nameOrSerial)
+	logging.info('         command: ' + command)
+	logging.info('         message: ' + message)
 
 	alexa.sendSequenceCommand(nameOrSerial, command, message)
 })
 
 alexa.init({
-	cookie: cookie,  // cookie if already known, else can be generated using email/password
+	cookie: cookie,
 	email: username,    // optional, amazon email for login to get new cookie
 	password: password, // optional, amazon password for login to get new cookie
-	proxyOnly: false,
+	proxyOnly: true,
 	proxyOwnIp: 'localhost',
 	proxyPort: 3001,
 	proxyLogLevel: 'info',
-	bluetooth: true,
-	// logger: console.log, // optional
+	bluetooth: false,
+	logger: logging.info, // optional
 	userAgent: userAgent,
 	alexaServiceHost: alexaServiceHost,
 	acceptLanguage: acceptLanguage,
 	amazonPage: amazonPage,
-	useWsMqtt: true, // optional, true to use the Websocket/MQTT direct push connection
+	useWsMqtt: false, // optional, true to use the Websocket/MQTT direct push connection
 	cookieRefreshInterval: 5*24*60*1000 // optional, cookie refresh intervall, set to 0 to disable refresh
 },
 function(err) {
@@ -78,6 +80,7 @@ function(err) {
 		logging.error('Setup error:' + err)
 		return
 	}
+	logging.info('alexa cookie: ' + alexa.cookie)
 }
 )
 
