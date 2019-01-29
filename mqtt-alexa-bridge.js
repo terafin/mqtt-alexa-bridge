@@ -67,7 +67,7 @@ alexa.init({
 	proxyPort: 3001,
 	proxyLogLevel: 'info',
 	bluetooth: false,
-	logger: logging.info, // optional
+	// logger: logging.info, // optional
 	userAgent: userAgent,
 	alexaServiceHost: alexaServiceHost,
 	acceptLanguage: acceptLanguage,
