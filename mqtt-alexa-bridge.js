@@ -24,7 +24,7 @@ require('homeautomation-js-lib/mqtt_helpers.js')
 
 var connectedEvent = function() {
 	logging.info('MQTT Connected')
-	client.subscribe(topic_prefix + '/#', {qos: 2})
+	client.subscribe(topic_prefix + '/#', {qos: 1})
 	health.healthyEvent()
 }
 
