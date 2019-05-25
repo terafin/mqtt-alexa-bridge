@@ -5,6 +5,7 @@ const _ = require('lodash')
 const health = require('homeautomation-js-lib/health.js')
 const Alexa = require('alexa-remote2')
 const alexa = new Alexa()
+const mqtt_helpers = require('homeautomation-js-lib/mqtt_helpers.js')
 
 var topic_prefix = process.env.TOPIC_PREFIX
 var cookie = process.env.ALEXA_COOKIE
@@ -20,7 +21,6 @@ if (_.isNil(topic_prefix)) {
 	topic_prefix = '/alexa/'
 }
 
-require('homeautomation-js-lib/mqtt_helpers.js')
 
 var connectedEvent = function() {
 	logging.info('MQTT Connected')
@@ -34,7 +34,7 @@ var disconnectedEvent = function() {
 }
 
 // Setup MQTT
-var client = mqtt.setupClient(connectedEvent, disconnectedEvent)
+var client = mqtt_helpers.setupClient(connectedEvent, disconnectedEvent)
 
 if (_.isNil(client)) {
 	logging.warn('MQTT Client Failed to Startup')
