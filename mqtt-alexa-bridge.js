@@ -41,8 +41,9 @@ if (_.isNil(client)) {
 	process.abort()
 }
 
-// MQTT Observation
 
+
+// MQTT Observation
 client.on('message', (topic, message) => {
 	topic = topic.replace(topic_prefix + '/', '')
 	logging.info('Received ' + topic + ' : ' + message)
