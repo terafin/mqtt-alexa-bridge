@@ -32,11 +32,8 @@ build:
   except:
     - master
 
-# deploy:
-#   stage: deploy
-#   script:
-#     - apk add --update --no-cache sshpass openssh && rm -rf /var/cache/apk/*
-#     - curl -X POST $DEPLOY_URL/$DEPLOY_UUID
-#     - sshpass -p moyawhisper1 ssh -q terafin@10.0.90.60 'echo this is a test `hostname`'
-
-#     - docker service update --image terafin/mqtt-alexa-bridge:latest automation_mqtt-alexa-bridge
+deploy:
+  stage: deploy
+  script:
+    - apk add --update curl
+    - curl -X GET -H "X-Docker-Token: $DOCKER_AUTH_TOKEN" "https://siliconspirit.net/hooks/docker-iot-update?DOCKER_SERVICE_NAME=$DOCKER_SERVICE_NAME&DOCKER_IMAGE_PREFIX=$DOCKER_IMAGE_PREFIX&DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME&DOCKER_IMAGE_TAG=$DOCKER_IMAGE_TAG"
