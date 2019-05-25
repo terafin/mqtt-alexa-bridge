@@ -34,7 +34,6 @@ build:
 
 deploy:
   stage: deploy
-  image: terafin/rancher-cli-k8s:latest
   script:
-    - rancher login "$RANCHER_URL" --skip-verify --token "$RANCHER_BEARER_TOKEN" --context "$RANCHER_CONTEXT"
-    - rancher kubectl --namespace="$RANCHER_NAMESPACE" patch deployment "$CI_PROJECT_NAME" -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"date\":\"`date +'%s'`\"}}}}}"
+    - apk add --update --no-cache curl && rm -rf /var/cache/apk/*
+    - curl -X POST $DEPLOY_URL/$DEPLOY_UUID
