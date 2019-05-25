@@ -32,8 +32,8 @@ build:
   except:
     - master
 
-deploy:
-  stage: deploy
-  script:
-    - apk add --update --no-cache curl && rm -rf /var/cache/apk/*
-    - curl -X POST $DEPLOY_URL/$DEPLOY_UUID
+# deploy:
+#   stage: deploy
+#   script:
+#     - apk add --update --no-cache curl && rm -rf /var/cache/apk/*
+#     - curl -X POST $DEPLOY_URL/$DEPLOY_UUID

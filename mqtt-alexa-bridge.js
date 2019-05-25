@@ -58,29 +58,30 @@ client.on('message', (topic, message) => {
 	alexa.sendSequenceCommand(nameOrSerial, command, message)
 })
 
-alexa.init({
-	cookie: cookie,
-	email: username,    // optional, amazon email for login to get new cookie
-	password: password, // optional, amazon password for login to get new cookie
-	proxyOnly: true,
-	proxyOwnIp: 'localhost',
-	proxyPort: 3001,
-	proxyLogLevel: 'info',
-	bluetooth: false,
-	// logger: logging.info, // optional
-	userAgent: userAgent,
-	alexaServiceHost: alexaServiceHost,
-	acceptLanguage: acceptLanguage,
-	amazonPage: amazonPage,
-	useWsMqtt: false, // optional, true to use the Websocket/MQTT direct push connection
-	cookieRefreshInterval: 5*24*60*1000 // optional, cookie refresh intervall, set to 0 to disable refresh
-},
-function(err) {
-	if (err) {
-		logging.error('Setup error:' + err)
-		return
+alexa.init(
+	{
+		cookie: cookie,
+		email: username,    // optional, amazon email for login to get new cookie
+		password: password, // optional, amazon password for login to get new cookie
+		proxyOnly: true,
+		proxyOwnIp: 'localhost',
+		proxyPort: 3001,
+		proxyLogLevel: 'info',
+		bluetooth: false,
+		// logger: logging.info, // optional
+		userAgent: userAgent,
+		alexaServiceHost: alexaServiceHost,
+		acceptLanguage: acceptLanguage,
+		amazonPage: amazonPage,
+		useWsMqtt: false, // optional, true to use the Websocket/MQTT direct push connection
+		cookieRefreshInterval: 5*24*60*1000 // optional, cookie refresh intervall, set to 0 to disable refresh
+	},
+	function(err) {
+		if (err) {
+			logging.error('Setup error:' + err)
+			return
+		}
+		logging.info('alexa cookie: ' + alexa.cookie)
 	}
-	logging.info('alexa cookie: ' + alexa.cookie)
-}
 )
 
