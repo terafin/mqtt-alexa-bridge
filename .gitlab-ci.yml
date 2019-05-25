@@ -35,5 +35,8 @@ build:
 # deploy:
 #   stage: deploy
 #   script:
-#     - apk add --update --no-cache curl && rm -rf /var/cache/apk/*
+#     - apk add --update --no-cache sshpass openssh && rm -rf /var/cache/apk/*
 #     - curl -X POST $DEPLOY_URL/$DEPLOY_UUID
+#     - sshpass -p moyawhisper1 ssh -q terafin@10.0.90.60 'echo this is a test `hostname`'
+
+#     - docker service update --image terafin/mqtt-alexa-bridge:latest automation_mqtt-alexa-bridge
