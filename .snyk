@@ -1,0 +1,14 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.14.1
+ignore: {}
+# patches apply the minimum changes required to fix a vulnerability
+patch:
+  SNYK-JS-LODASH-567746:
+    - lodash:
+        patched: '2020-05-01T01:15:13.891Z'
+    - homeautomation-js-lib > lodash:
+        patched: '2020-05-01T01:15:13.891Z'
+    - alexa-remote2 > alexa-cookie2 > http-proxy-middleware > lodash:
+        patched: '2020-05-01T01:15:13.891Z'
+    - homeautomation-js-lib > winston > async > lodash:
+        patched: '2020-05-01T01:15:13.891Z'
