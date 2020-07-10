@@ -1,22 +1,22 @@
 {
-    "name": "mqtt-alexa-bridge",
-    "version": "0.0.1",
-    "description": "Bridge Alexa via HTTP to and from MQTT",
-    "license": "MIT",
-    "main": "mqtt-alexa-bridge.js",
-    "repository": {
-        "url": "https://github.com/terafin/mqtt-alexa-bridge"
-    },
-    "scripts": {
-        "start": "node mqtt-alexa-bridge.js"
-    },
-    "dependencies": {
-        "homeautomation-js-lib": "https://github.com/terafin/homeautomation-js-lib.git",
-        "lodash": "4.17.16",
-        "mqtt": "latest",
-        "alexa-remote2": "latest"
-    },
-    "engines": {
-        "node": ">=4"
-    }
+  "name": "mqtt-alexa-bridge",
+  "version": "0.0.1",
+  "description": "Bridge Alexa via HTTP to and from MQTT",
+  "license": "MIT",
+  "main": "mqtt-alexa-bridge.js",
+  "repository": {
+    "url": "https://github.com/terafin/mqtt-alexa-bridge"
+  },
+  "scripts": {
+    "start": "node mqtt-alexa-bridge.js"
+  },
+  "dependencies": {
+    "homeautomation-js-lib": "https://github.com/terafin/homeautomation-js-lib.git",
+    "lodash": "4.17.16",
+    "mqtt": "latest",
+    "alexa-remote2": "latest"
+  },
+  "engines": {
+    "node": ">=4"
+  }
 }
