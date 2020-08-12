@@ -17,68 +17,68 @@ var acceptLanguage = process.env.ALEXA_ACCEPT_LANGUAGE
 var amazonPage = process.env.ALEXA_AMAZON_PAGE
 
 if (_.isNil(topic_prefix)) {
-	logging.warn('empty topic prefix, using /alexa')
-	topic_prefix = '/alexa/'
+    logging.warn('empty topic prefix, using /alexa')
+    topic_prefix = '/alexa/'
 }
 
 
 var connectedEvent = function() {
-	logging.info('MQTT Connected')
-	client.subscribe(topic_prefix + '/#', {qos: 1})
-	health.healthyEvent()
+    logging.info('MQTT Connected')
+    client.subscribe(topic_prefix + '/#', { qos: 1 })
+    health.healthyEvent()
 }
 
 var disconnectedEvent = function() {
-	logging.error('Reconnecting...')
-	health.unhealthyEvent()
+    logging.error('Reconnecting...')
+    health.unhealthyEvent()
 }
 
 // Setup MQTT
 var client = mqtt_helpers.setupClient(connectedEvent, disconnectedEvent)
 
 if (_.isNil(client)) {
-	logging.warn('MQTT Client Failed to Startup')
-	process.abort()
+    logging.warn('MQTT Client Failed to Startup')
+    process.abort()
 }
 
 // MQTT Observation
 client.on('message', (topic, message) => {
-	topic = topic.replace(topic_prefix + '/', '')
-	logging.info('Received ' + topic + ' : ' + message)
+    topic = topic.replace(topic_prefix + '/', '')
+    logging.info('Received ' + topic + ' : ' + message)
 
-	var components = topic.split('/')
+    var components = topic.split('/')
 
-	const nameOrSerial = components[0]
-	const command = components[1]
-	logging.info(' => nameOrSerial: ' + nameOrSerial)
-	logging.info('         command: ' + command)
-	logging.info('         message: ' + message)
+    const nameOrSerial = components[0]
+    const command = components[1]
+    logging.info(' => nameOrSerial: ' + nameOrSerial)
+    logging.info('         command: ' + command)
+    logging.info('         message: ' + message)
 
-	alexa.sendSequenceCommand(nameOrSerial, command, message)
+    alexa.sendSequenceCommand(nameOrSerial, command, message)
 })
 
 alexa.init({
-	cookie: cookie,
-	email: username, // optional, amazon email for login to get new cookie
-	password: password, // optional, amazon password for login to get new cookie
-	proxyOnly: true,
-	proxyOwnIp: 'localhost',
-	proxyPort: 3001,
-	proxyLogLevel: 'info',
-	bluetooth: false,
-	// logger: logging.info, // optional
-	userAgent: userAgent,
-	alexaServiceHost: alexaServiceHost,
-	acceptLanguage: acceptLanguage,
-	amazonPage: amazonPage,
-	useWsMqtt: false, // optional, true to use the Websocket/MQTT direct push connection
-	cookieRefreshInterval: 5 * 24 * 60 * 1000 // optional, cookie refresh intervall, set to 0 to disable refresh
-},
-function(err) {
-	if (err) {
-		logging.error('Setup error:' + err)
-		return
-	}
-	logging.info('alexa cookie: ' + alexa.cookie)
-}
+        cookie: cookie,
+        email: username, // optional, amazon email for login to get new cookie
+        password: password, // optional, amazon password for login to get new cookie
+        proxyOnly: true,
+        proxyOwnIp: 'localhost',
+        proxyPort: 3001,
+        proxyLogLevel: 'info',
+        bluetooth: false,
+        // logger: logging.info, // optional
+        userAgent: userAgent,
+        alexaServiceHost: alexaServiceHost,
+        acceptLanguage: acceptLanguage,
+        amazonPage: amazonPage,
+        useWsMqtt: false, // optional, true to use the Websocket/MQTT direct push connection
+        cookieRefreshInterval: 5 * 24 * 60 * 1000 // optional, cookie refresh intervall, set to 0 to disable refresh
+    },
+    function(err) {
+        if (err) {
+            logging.error('Setup error:' + err)
+            return
+        }
+        logging.info('alexa cookie: ' + alexa.cookie)
+    }
 )
