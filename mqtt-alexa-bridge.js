@@ -16,6 +16,8 @@ var alexaServiceHost = process.env.ALEXA_SERVICE_HOST
 var acceptLanguage = process.env.ALEXA_ACCEPT_LANGUAGE
 var amazonPage = process.env.ALEXA_AMAZON_PAGE
 
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"]
+
 if (_.isNil(topic_prefix)) {
     logging.warn('empty topic prefix, using /alexa')
     topic_prefix = '/alexa/'
@@ -59,19 +61,19 @@ client.on('message', (topic, message) => {
 
 alexa.init({
         cookie: cookie,
-        email: username, // optional, amazon email for login to get new cookie
-        password: password, // optional, amazon password for login to get new cookie
+        // email: username, // optional, amazon email for login to get new cookie
+        // password: password, // optional, amazon password for login to get new cookie
         proxyOnly: true,
         proxyOwnIp: 'localhost',
         proxyPort: 3001,
         proxyLogLevel: 'info',
         bluetooth: false,
-        // logger: logging.info, // optional
+        // logger: console.log, // optional
         userAgent: userAgent,
         alexaServiceHost: alexaServiceHost,
         acceptLanguage: acceptLanguage,
         amazonPage: amazonPage,
-        useWsMqtt: false, // optional, true to use the Websocket/MQTT direct push connection
+        useWsMqtt: true, // optional, true to use the Websocket/MQTT direct push connection
         cookieRefreshInterval: 5 * 24 * 60 * 1000 // optional, cookie refresh intervall, set to 0 to disable refresh
     },
     function(err) {
