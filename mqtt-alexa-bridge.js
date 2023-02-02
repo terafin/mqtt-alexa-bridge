@@ -15,6 +15,7 @@ var userAgent = process.env.ALEXA_USER_AGENT
 var alexaServiceHost = process.env.ALEXA_SERVICE_HOST
 var acceptLanguage = process.env.ALEXA_ACCEPT_LANGUAGE
 var amazonPage = process.env.ALEXA_AMAZON_PAGE
+var macDms = process.env.ALEXA_MACDMS
 
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"]
 
@@ -69,6 +70,7 @@ alexa.init({
         proxyLogLevel: 'info',
         bluetooth: false,
         // logger: console.log, // optional
+        macDms: macDms,
         userAgent: userAgent,
         alexaServiceHost: alexaServiceHost,
         acceptLanguage: acceptLanguage,
@@ -84,3 +86,9 @@ alexa.init({
         logging.info('alexa cookie: ' + alexa.cookie)
     }
 )
+
+alexa.on('cookie', (cookie, csrf, macDms) => {
+    logging.info('cookie: ' + cookie)
+    logging.info('csrf: ' + csrf)
+    logging.info('macDms: ' + JSON.stringify(macDms))
+})
